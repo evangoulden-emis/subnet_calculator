@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"os"
 )
 
 const (
@@ -14,7 +13,7 @@ const (
 )
 
 func main() {
-	cidr := flag.String("cidr", "192.168.1.0/24", "Enter a CIDR, valid formats are: 10.0.0.0/8 or 10.0.0.0 255.0.0.0")
+	cidr := flag.String("cidr", "192.168.0.0/23", "Enter a CIDR, valid formats are: 10.0.0.0/8 or 10.0.0.0 255.0.0.0")
 	subnetwork := flag.Int("sub", 27, "Enter the bitmask to subdivide the CIDR into subnets e.g. 27")
 	flag.Parse()
 
@@ -25,24 +24,19 @@ func main() {
 		return
 	}
 	u32BaseIp := binary.BigEndian.Uint32(ip.To4())
-	fmt.Println(u32BaseIp)
 	// Calculate the subnet jump size
 
 	jmpSize := math.Pow(2, float64(TOTAL_BITS-*subnetwork))
 	origJmpSize := jmpSize
 
-	if jmpSize > 255 {
-
-		os.Exit(1)
-	}
-	fmt.Println(jmpSize)
 	count := 0
+	var sub []uint32
 	//subnets := make([]net.IPMask, 4)
 	for {
 		if jmpSize > 255 {
 			break
 		}
-		var sub []uint32
+
 		if count == 0 {
 			// First Itteration
 			sub = append(sub, u32BaseIp)
@@ -52,8 +46,28 @@ func main() {
 			count++
 			jmpSize = jmpSize + origJmpSize
 		}
+	}
+	convertedSub := convertUint32ToIpAddress(sub)
+	printSubnets(convertedSub, *subnetwork)
 
-		fmt.Println(sub)
+}
 
+func convertUint32ToIpAddress(u []uint32) []net.IP {
+	ips := make([]net.IP, 0, len(u))
+	for _, i := range u {
+		ip := make(net.IP, 4)
+		binary.BigEndian.PutUint32(ip, i)
+		ips = append(ips, ip)
+	}
+	return ips
+}
+
+func printSubnets(subnets []net.IP, netmask int) {
+	for _, subnet := range subnets {
+		network := net.IPNet{
+			IP:   subnet,
+			Mask: net.CIDRMask(netmask, 32),
+		}
+		fmt.Println(network.String())
 	}
 }
