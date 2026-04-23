@@ -33,9 +33,9 @@ func main() {
 	var sub []uint32
 	//subnets := make([]net.IPMask, 4)
 	for {
-		if jmpSize > 255 {
-			break
-		}
+		//if jmpSize > 255 {
+		//	break
+		//}
 
 		if count == 0 {
 			// First Itteration
